@@ -1,0 +1,52 @@
+# ============================Server======================================
+[total]
+# 控制台日志输出
+stdOut=false
+# 日志输出级别 debug、info、warn、error
+logLevel="warn"
+
+[configDb]
+# 配置库连接信息
+server=""
+port=1433
+dbName=""
+user=""
+pwd=""
+
+[iris]
+# 端口
+port=8000
+# iris日志级别 debug、info、warn、error
+logLevel="warn"
+
+[service]
+# 安装为服务时所需配置
+name=""
+displayName=""
+description=""
+
+# ============================Server======================================
+
+# ============================Client======================================
+[total]
+# 控制台日志输出
+stdOut=false
+# 日志输出级别 debug、info、warn、error
+logLevel="warn"
+
+[iris]
+# 端口
+port=8000
+# iris日志级别 debug、info、warn、error
+logLevel="warn"
+
+[service]
+# 安装为服务时所需配置
+name=""
+displayName=""
+description=""
+
+[server]
+# 服务端地址
+address=""
+# ============================Client======================================
