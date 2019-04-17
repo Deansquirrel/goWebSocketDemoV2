@@ -101,7 +101,7 @@ func (p *program) Start(s service.Service) error {
 func (p *program) run() error {
 	//服务所执行的代码
 	log.Warn("Service Starting")
-	defer log.Warn("Service Start Complete")
+	defer log.Warn("Service Started")
 	{
 		switch global.Args.Mode {
 		case object.ArgsModeServer:

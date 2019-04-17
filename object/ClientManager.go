@@ -11,7 +11,7 @@ type clientManager struct {
 	clients      map[string]IClient
 	chRegister   chan IClient
 	chUnregister chan string
-	chBroadcast  chan *SocketMessage
+	chBroadcast  chan SocketMessage
 	lock         sync.Mutex
 }
 
@@ -20,10 +20,18 @@ func NewClientManager() *clientManager {
 		clients:      make(map[string]IClient),
 		chRegister:   make(chan IClient),
 		chUnregister: make(chan string),
-		chBroadcast:  make(chan *SocketMessage),
+		chBroadcast:  make(chan SocketMessage),
 	}
 	cm.start()
 	return &cm
+}
+
+func (manager *clientManager) GetIdList() []string {
+	list := make([]string, 0)
+	for key := range manager.clients {
+		list = append(list, key)
+	}
+	return list
 }
 
 func (manager *clientManager) GetClient(id string) IClient {
@@ -42,7 +50,7 @@ func (manager *clientManager) GetChUnregister() chan<- string {
 	return manager.chUnregister
 }
 
-func (manager *clientManager) GetChBroadcast() chan<- *SocketMessage {
+func (manager *clientManager) GetChBroadcast() chan<- SocketMessage {
 	return manager.chBroadcast
 }
 
@@ -84,7 +92,7 @@ func (manager *clientManager) unregister(id string) {
 	}
 }
 
-func (manager *clientManager) broad(msg *SocketMessage) {
+func (manager *clientManager) broad(msg SocketMessage) {
 	go func() {
 		for _, c := range manager.clients {
 			log.Debug(fmt.Sprintf("Board msg: Type:%d,Msg:%s", msg.MessageType, msg.Data))

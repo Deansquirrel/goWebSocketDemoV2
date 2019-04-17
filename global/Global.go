@@ -13,6 +13,7 @@ const (
 
 const (
 	HttpConnectTimeout = 30
+	ReConnectDuration  = 60 * 5
 )
 
 var Ctx context.Context

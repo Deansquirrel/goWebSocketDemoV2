@@ -1,31 +1,40 @@
 package service
 
 import (
-	"github.com/Deansquirrel/goWebSocketDemoV2/global"
-	"time"
+	"encoding/json"
+	"fmt"
+	"github.com/Deansquirrel/goWebSocketDemoV2/object"
+	"github.com/gorilla/websocket"
 )
 
 import log "github.com/Deansquirrel/goToolLog"
 
-//启动服务内容
-func StartServer() error {
-	go func() {
-		for i := 0; i < 5; i++ {
-			log.Debug("Server")
-			time.Sleep(time.Second)
-		}
-		global.Cancel()
-	}()
-	return nil
+type common struct {
 }
 
-func StartClient() error {
-	go func() {
-		for i := 0; i < 5; i++ {
-			log.Debug("Client")
-			time.Sleep(time.Second)
-		}
-		global.Cancel()
-	}()
-	return nil
+func (c *common) GetRMessage(clientId string, code int, data string) *object.SocketMessage {
+	m := object.ReturnMessage{
+		ErrCode: code,
+		ErrMsg:  data,
+	}
+	d, err := json.Marshal(m)
+	if err != nil {
+		log.Error(fmt.Sprintf("getRMessage error: %s", err.Error()))
+		return nil
+	}
+	rm := object.CtrlMessage{
+		Id:   clientId,
+		Key:  object.CtrlMessageReturn,
+		Data: string(d),
+	}
+	rd, err := json.Marshal(rm)
+	if err != nil {
+		log.Error(fmt.Sprintf("getRMessage getRd error: %s", err.Error()))
+		return nil
+	}
+	return &object.SocketMessage{
+		ClientId:    clientId,
+		MessageType: websocket.TextMessage,
+		Data:        rd,
+	}
 }
