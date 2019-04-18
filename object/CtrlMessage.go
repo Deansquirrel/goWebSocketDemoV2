@@ -6,11 +6,13 @@ const (
 	CtrlMessageReturn = "return"
 	//===============================================================
 	//Server
-	CtrlMessageHello    = "hello"
-	CtrlMessageUpdateId = "updateId"
+	CtrlMessageHello            = "hello"
+	CtrlMessageUpdateId         = "updateId"
+	CtrlMessageDownloadFileList = "downloadFileList"
 	//===============================================================
 	//Client
-	CtrlMessageTest = "test"
+	CtrlMessageTest               = "test"
+	CtrlMessageReDownloadFileList = "reDownloadFileList"
 	//===============================================================
 )
 
@@ -34,4 +36,28 @@ type UpdateId struct {
 type ReturnMessage struct {
 	ErrCode int    `json:"errcode"`
 	ErrMsg  string `json:"errmsg"`
+}
+
+//downloadFile
+type DownloadFileList struct {
+	SubPath string `json:"subpath"`
+}
+
+//reDownloadFile
+type ReDownloadFileList struct {
+	FileList []DownloadFile `json:"filelist"`
+}
+
+//downloadFileObject
+type DownloadFile struct {
+	Name    string `json:"name"`
+	SubPath string `json:"subpath"`
+	MD5     string `json:"md5"`
+}
+
+//reDownloadFileObject
+type ReDownloadFile struct {
+	ErrCode int
+	ErrMsg  string
+	Data    []byte
 }

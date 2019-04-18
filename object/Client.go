@@ -13,8 +13,8 @@ import log "github.com/Deansquirrel/goToolLog"
 type client struct {
 	id        string
 	socket    *websocket.Conn
-	chReceive chan SocketMessage
-	chSend    chan SocketMessage
+	chReceive chan CtrlMessage
+	chSend    chan CtrlMessage
 	lock      sync.Mutex
 
 	ctx    context.Context
@@ -28,8 +28,8 @@ func NewClient(id string, socket *websocket.Conn) *client {
 	c := client{
 		id:        id,
 		socket:    socket,
-		chReceive: make(chan SocketMessage),
-		chSend:    make(chan SocketMessage),
+		chReceive: make(chan CtrlMessage),
+		chSend:    make(chan CtrlMessage),
 	}
 	c.ctx, c.cancel = context.WithCancel(context.Background())
 	c.start()
@@ -44,14 +44,14 @@ func (c *client) SetId(id string) {
 	c.id = id
 }
 
-func (c *client) GetChReceive() <-chan SocketMessage {
+func (c *client) GetChReceive() <-chan CtrlMessage {
 	if c.isStopped || c.chReceive == nil {
 		return nil
 	}
 	return c.chReceive
 }
 
-func (c *client) GetChSend() chan<- SocketMessage {
+func (c *client) GetChSend() chan<- CtrlMessage {
 	if c.isStopped || c.chSend == nil {
 		return nil
 	}
@@ -90,20 +90,16 @@ func (c *client) read() {
 	//log.Debug(fmt.Sprintf("Client read start,id:%s", c.id))
 	//defer log.Debug(fmt.Sprintf("Client read exit,id:%s", c.id))
 	for {
-		t, d, err := c.socket.ReadMessage()
+		var cm CtrlMessage
+		err := c.socket.ReadJSON(&cm)
 		if err != nil {
 			log.Error(fmt.Sprintf("Read error:%s,ClientID:%s", err.Error(), c.GetId()))
-			if !c.isStopped {
+			if c.isStopped {
 				c.Close()
 			}
 			return
 		}
-		m := SocketMessage{
-			ClientId:    c.id,
-			MessageType: t,
-			Data:        d,
-		}
-		c.chReceive <- m
+		c.chReceive <- cm
 	}
 }
 
@@ -113,20 +109,16 @@ func (c *client) write() {
 	for {
 		select {
 		case msg, ok := <-c.chSend:
+			log.Debug(fmt.Sprintf("Get Send message %v %v", msg, ok))
 			if ok {
-				c.writeData(&msg)
+				//c.writeData(&msg)
+				err := c.socket.WriteJSON(msg)
+				if err != nil {
+					log.Error(err.Error())
+				}
 			}
 		case <-c.ctx.Done():
 			return
 		}
-	}
-}
-
-func (c *client) writeData(msg *SocketMessage) {
-	//log.Debug(fmt.Sprintf("Client write data start,id:%s,dateLength:%d", c.id, len(msg.Data)))
-	//defer log.Debug(fmt.Sprintf("Client write data exit,id:%s", c.id))
-	err := c.socket.WriteMessage(msg.MessageType, msg.Data)
-	if err != nil {
-		log.Error(err.Error())
 	}
 }
