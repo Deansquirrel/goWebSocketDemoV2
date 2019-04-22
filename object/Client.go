@@ -89,16 +89,19 @@ func (c *client) start() {
 func (c *client) read() {
 	//log.Debug(fmt.Sprintf("Client read start,id:%s", c.id))
 	//defer log.Debug(fmt.Sprintf("Client read exit,id:%s", c.id))
+	defer func() {
+		if !c.isStopped {
+			c.Close()
+		}
+	}()
 	for {
 		var cm CtrlMessage
 		err := c.socket.ReadJSON(&cm)
 		if err != nil {
 			log.Error(fmt.Sprintf("Read error:%s,ClientID:%s", err.Error(), c.GetId()))
-			if c.isStopped {
-				c.Close()
-			}
 			return
 		}
+		cm.Id = c.id
 		c.chReceive <- cm
 	}
 }

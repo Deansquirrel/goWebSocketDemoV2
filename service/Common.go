@@ -11,6 +11,22 @@ import log "github.com/Deansquirrel/goToolLog"
 type common struct {
 }
 
+func (c *common) GetCtrlMessage(clientId string, key string, v interface{}) *object.CtrlMessage {
+	var data []byte
+	data, err := json.Marshal(v)
+	if err != nil {
+		errMsg := fmt.Sprintf("Get Object[%s] byte error: %s", key, err.Error())
+		log.Error(errMsg)
+		data = []byte(errMsg)
+	}
+	cm := object.CtrlMessage{
+		Id:   clientId,
+		Key:  key,
+		Data: string(data),
+	}
+	return &cm
+}
+
 func (c *common) GetRMessage(clientId string, code int, data string) *object.CtrlMessage {
 	m := object.ReturnMessage{
 		ErrCode: code,
@@ -27,14 +43,4 @@ func (c *common) GetRMessage(clientId string, code int, data string) *object.Ctr
 		Data: string(d),
 	}
 	return &rm
-	//rd, err := json.Marshal(rm)
-	//if err != nil {
-	//	log.Error(fmt.Sprintf("getRMessage getRd error: %s", err.Error()))
-	//	return nil
-	//}
-	//return &object.SocketMessage{
-	//	ClientId:    clientId,
-	//	MessageType: websocket.TextMessage,
-	//	Data:        rd,
-	//}
 }

@@ -3,16 +3,15 @@ package object
 const (
 	//===============================================================
 	//Server + Client
-	CtrlMessageReturn = "return"
-	//===============================================================
-	//Server
-	CtrlMessageHello            = "hello"
-	CtrlMessageUpdateId         = "updateId"
+	CtrlMessageReturn           = "return"
 	CtrlMessageDownloadFileList = "downloadFileList"
 	//===============================================================
-	//Client
-	CtrlMessageTest               = "test"
-	CtrlMessageReDownloadFileList = "reDownloadFileList"
+	//Client → Server
+	CtrlMessageHello    = "hello"
+	CtrlMessageUpdateId = "updateId"
+	//CtrlMessageHeartBeat = "heartBeat"
+	//===============================================================
+	//Server → Client
 	//===============================================================
 )
 
@@ -43,21 +42,9 @@ type DownloadFileList struct {
 	SubPath string `json:"subpath"`
 }
 
-//reDownloadFile
-type ReDownloadFileList struct {
-	FileList []DownloadFile `json:"filelist"`
-}
-
 //downloadFileObject
 type DownloadFile struct {
 	Name    string `json:"name"`
 	SubPath string `json:"subpath"`
 	MD5     string `json:"md5"`
-}
-
-//reDownloadFileObject
-type ReDownloadFile struct {
-	ErrCode int
-	ErrMsg  string
-	Data    []byte
 }

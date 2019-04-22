@@ -95,7 +95,6 @@ func (manager *clientManager) unregister(id string) {
 func (manager *clientManager) broad(msg CtrlMessage) {
 	go func() {
 		for _, c := range manager.clients {
-			//log.Debug(fmt.Sprintf("Board msg: Type:%d,Msg:%s", msg.MessageType, msg.Data))
 			c.GetChSend() <- msg
 		}
 	}()

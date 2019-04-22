@@ -34,6 +34,8 @@ func (c *Client) Start() {
 	}
 	c.client = object.NewClient(strings.ToUpper(goToolCommon.Guid()), conn)
 	go c.msgHandler()
+	time.AfterFunc(time.Second*1, c.SayHello)
+	time.AfterFunc(time.Second*2, c.UpdateId)
 }
 
 //消息处理
@@ -48,8 +50,8 @@ func (c *Client) msgHandler() {
 				}
 			}
 		case <-c.client.GetChClose():
-			time.Sleep(global.ReConnectDuration * time.Second)
-			c.Start()
+			time.AfterFunc(global.ReConnectDuration*time.Second, c.Start)
+			log.Warn(fmt.Sprintf("客户端连接断开，%d秒后重连", global.ReConnectDuration))
 		}
 	}
 }
@@ -57,31 +59,65 @@ func (c *Client) msgHandler() {
 //消息处理实体
 func (c *Client) msgHandlerWorker(msg *object.CtrlMessage) *object.CtrlMessage {
 	comm := common{}
-	//if msg.MessageType != websocket.TextMessage {
-	//	errMsg := fmt.Sprintf("Unexpected MessageType : %d", msg.MessageType)
-	//	log.Error(errMsg)
-	//	return comm.GetRMessage(msg.ClientId, -1, errMsg)
-	//}
-	//var m object.CtrlMessage
-	//err := json.Unmarshal(msg.Data, &m)
-	//if err != nil {
-	//	errMsg := fmt.Sprintf("Get Message Object error: %s", err.Error())
-	//	log.Error(errMsg)
-	//	return comm.GetRMessage(msg.ClientId, -1, errMsg)
-	//}
 	log.Debug(fmt.Sprintf("Client rec new message,id: %s,key: %s", msg.Id, msg.Key))
-	//===================================================================================
 	switch msg.Key {
+	case object.CtrlMessageDownloadFileList:
+		c.handlerDownloadList(msg.Id, []byte(msg.Data))
+		return nil
 	case object.CtrlMessageReturn:
 		c.handlerReturn(msg.Id, []byte(msg.Data))
 		return nil
-	case object.CtrlMessageTest:
-		return comm.GetRMessage(msg.Id, 0, "ok")
 	default:
 		errMsg := fmt.Sprintf("Message Key is not exist,key: %s", msg.Key)
 		log.Warn(errMsg)
 		return comm.GetRMessage(msg.Id, -1, errMsg)
 	}
+}
+
+func (c *Client) handlerDownloadList(clientId string, d []byte) {
+	var data []object.DownloadFile
+	err := json.Unmarshal(d, &data)
+	if err != nil {
+		log.Error(fmt.Sprintf("Get Message Data DownloadFile error: %s", err.Error()))
+		return
+	}
+	c.downFileList(data)
+}
+
+func (c *Client) downFileList(list []object.DownloadFile) {
+	currPath, err := goToolCommon.GetCurrPath()
+	if err != nil {
+		log.Error(fmt.Sprintf("Get CurrPath error: %s", err.Error()))
+		log.Warn("Download Stopped")
+		return
+	}
+	for _, f := range list {
+		go c.downFile(currPath, &f)
+	}
+}
+
+func (c *Client) downFile(currPath string, f *object.DownloadFile) {
+	fullPath := currPath + "\\" + f.SubPath
+	fullPath = "C:\\Users\\yuansong\\go\\pkg\\goWebSocketDemoV2\\Client\\AA\\BB\\CC"
+	err := goToolCommon.CheckAndCreateFolder(fullPath)
+	if err != nil {
+		log.Error(fmt.Sprintf("检查并创建路径时遇到错误：%s", err.Error()))
+		return
+	}
+	//下载文件
+	u := url.URL{Scheme: "ws", Host: global.SysConfig.Server.Address, Path: WebPathDownloadFile}
+	var dialer = &websocket.Dialer{
+		HandshakeTimeout: global.HttpConnectTimeout * time.Second,
+	}
+	conn, _, err := dialer.Dial(u.String(), nil)
+	if err != nil {
+		log.Error(fmt.Sprintf("WebSocket Dial error: %s", err.Error()))
+		return
+	}
+	defer func() {
+		_ = conn.Close()
+	}()
+	//TODO
 }
 
 //返回消息处理
@@ -109,27 +145,27 @@ func (c *Client) SayHello() {
 	c.sendCtrlMessage(object.CtrlMessageHello, h)
 }
 
+//updateId
+func (c *Client) UpdateId() {
+	log.Debug("Update id")
+	u := object.UpdateId{
+		Id: c.client.GetId(),
+	}
+	c.sendCtrlMessage(object.CtrlMessageUpdateId, u)
+}
+
 //获取文件
-func (c *Client) GetFile() {
+func (c *Client) DownloadList() {
 	log.Debug("Client get file")
 	df := object.DownloadFileList{
-		SubPath: "\\clientFile",
+		SubPath: "\\" + global.ClientFileFolder,
 	}
 	c.sendCtrlMessage(object.CtrlMessageDownloadFileList, df)
 }
 
 func (c *Client) sendCtrlMessage(key string, v interface{}) {
-	data, err := json.Marshal(v)
-	if err != nil {
-		log.Error(fmt.Sprintf("Get Object[%s] byte error: %s", key, err.Error()))
-		return
-	}
-	cm := object.CtrlMessage{
-		Id:   c.client.GetId(),
-		Key:  key,
-		Data: string(data),
-	}
-	c.client.GetChSend() <- cm
+	comm := common{}
+	c.client.GetChSend() <- *comm.GetCtrlMessage(c.client.GetId(), key, v)
 }
 
 //

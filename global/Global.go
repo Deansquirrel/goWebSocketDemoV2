@@ -13,7 +13,11 @@ const (
 
 const (
 	HttpConnectTimeout = 30
-	ReConnectDuration  = 60 * 5
+	ReConnectDuration  = 30
+
+	ClientHeartBeatDuration = 60
+
+	ClientFileFolder = "clientFile"
 )
 
 var Ctx context.Context

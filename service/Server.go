@@ -8,6 +8,7 @@ import (
 	"github.com/Deansquirrel/goWebSocketDemoV2/object"
 	"github.com/gorilla/websocket"
 	"net/http"
+	"strings"
 )
 
 import log "github.com/Deansquirrel/goToolLog"
@@ -120,18 +121,18 @@ func (s *Server) wsPage(res http.ResponseWriter, req *http.Request) {
 	go func() {
 		for {
 			select {
-			case msg := <-c.GetChReceive():
-				rm := s.msgHandler(&msg)
-				if rm != nil {
-					c.GetChSend() <- *rm
+			case msg, ok := <-c.GetChReceive():
+				if ok {
+					rm := s.msgHandler(&msg)
+					if rm != nil {
+						c.GetChSend() <- *rm
+					}
 				}
+			case <-c.GetChClose():
+				return
 			}
 		}
 	}()
-}
-
-func (s *Server) clientTest(c object.IClient) bool {
-	return false
 }
 
 func (s *Server) msgHandler(msg *object.CtrlMessage) *object.CtrlMessage {
@@ -216,9 +217,17 @@ func (s *Server) handlerDownloadFileList(clientId string, d []byte) *object.Ctrl
 	list := s.getDownloadFileList(subPath)
 	for _, f := range list {
 		log.Debug(f.SubPath + "\\" + f.Name)
+		f.SubPath = strings.Replace(f.SubPath, currPath, "", -1)
 	}
-	//TODO
-	return nil
+	//for _, f := range list {
+	//	log.Debug(f.SubPath + "\\" + f.Name)
+	//}
+	//TODO 文件MD5未更新
+	rList := make([]object.DownloadFile, 0)
+	for _, f := range list {
+		rList = append(rList, *f)
+	}
+	return comm.GetCtrlMessage(clientId, object.CtrlMessageDownloadFileList, rList)
 }
 
 func (s *Server) getDownloadFileList(path string) []*object.DownloadFile {
@@ -257,4 +266,12 @@ func (s *Server) handlerReturn(clientId string, d []byte) {
 		log.Debug(fmt.Sprintf("Return Message: [%d]%s", data.ErrCode, data.ErrMsg))
 	}
 	return
+}
+
+func (s *Server) sendCtrlMessage(clientId, key string, v interface{}) {
+	c := s.manager.GetClient(clientId)
+	if c != nil {
+		comm := common{}
+		c.GetChSend() <- *comm.GetCtrlMessage(c.GetId(), key, v)
+	}
 }
