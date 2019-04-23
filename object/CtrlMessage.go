@@ -48,3 +48,11 @@ type DownloadFile struct {
 	SubPath string `json:"subpath"`
 	MD5     string `json:"md5"`
 }
+
+//downloadFileData
+type DownloadFileData struct {
+	ErrCode int          `json:"errcode"`
+	ErrMsg  string       `json:"errmsg"`
+	Info    DownloadFile `json:"info"`
+	Data    []byte       `json:"data"`
+}

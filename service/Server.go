@@ -31,20 +31,23 @@ func (s *Server) Start() {
 }
 
 func (s *Server) wsFile(res http.ResponseWriter, req *http.Request) {
-	////===================================================================================================
-	////解析请求
-	//conn, err := (&websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}).Upgrade(res, req, nil)
-	//if err != nil {
-	//	http.NotFound(res, req)
-	//	return
-	//}
-	//var fileInfo object.OprMessage
-	//err = conn.ReadJSON(&fileInfo)
-	//if err != nil {
-	//	errMsg := fmt.Sprintf("Get request info error,error: %s", err.Error())
-	//	s.writeFileReturnMessage(conn, -1, errMsg, nil)
-	//	return
-	//}
+	//===================================================================================================
+	//解析请求
+	conn, err := (&websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}).Upgrade(res, req, nil)
+	if err != nil {
+		http.NotFound(res, req)
+		return
+	}
+	var fileInfo object.DownloadFile
+	err = conn.ReadJSON(&fileInfo)
+	if err != nil {
+		errMsg := fmt.Sprintf("Get request info error,error: %s", err.Error())
+		log.Debug(errMsg)
+		return
+	}
+	log.Debug(fileInfo.SubPath + "      " + fileInfo.Name)
+	var rData object.DownloadFileData
+	//TODO
 	//log.Debug(fmt.Sprintf("Client [%s] [%s]", fileInfo.Id, fileInfo.Key))
 	//var f object.File
 	//err = json.Unmarshal([]byte(fileInfo.Data), &f)

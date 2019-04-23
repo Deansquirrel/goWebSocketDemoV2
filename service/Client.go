@@ -91,8 +91,18 @@ func (c *Client) downFileList(list []object.DownloadFile) {
 		log.Warn("Download Stopped")
 		return
 	}
+
+	chList := make(chan struct{}, global.MaxThread)
+	defer close(chList)
+	for i := 0; i < global.MaxThread; i++ {
+		chList <- struct{}{}
+	}
 	for _, f := range list {
-		go c.downFile(currPath, &f)
+		select {
+		case <-chList:
+			c.downFile(currPath, &f)
+			chList <- struct{}{}
+		}
 	}
 }
 
@@ -118,6 +128,13 @@ func (c *Client) downFile(currPath string, f *object.DownloadFile) {
 		_ = conn.Close()
 	}()
 	//TODO
+	err = conn.WriteJSON(&f)
+	if err != nil {
+		log.Error(fmt.Sprintf("WebSocket write error: %s", err.Error()))
+		return
+	}
+
+	err = conn.ReadJSON()
 }
 
 //返回消息处理

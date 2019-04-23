@@ -12,12 +12,16 @@ const (
 )
 
 const (
+	//http连接超时时间
 	HttpConnectTimeout = 30
-	ReConnectDuration  = 30
-
+	//重连时间
+	ReConnectDuration = 30
+	//心跳时间间隔
 	ClientHeartBeatDuration = 60
-
+	//客户端下载文件夹名称
 	ClientFileFolder = "clientFile"
+	//最大线程数
+	MaxThread = 10
 )
 
 var Ctx context.Context
