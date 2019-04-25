@@ -7,6 +7,7 @@ import (
 	"github.com/Deansquirrel/goWebSocketDemoV2/global"
 	"github.com/Deansquirrel/goWebSocketDemoV2/object"
 	"github.com/gorilla/websocket"
+	"io/ioutil"
 	"net/http"
 	"strings"
 )
@@ -31,10 +32,11 @@ func (s *Server) Start() {
 }
 
 func (s *Server) wsFile(res http.ResponseWriter, req *http.Request) {
-	//===================================================================================================
 	//解析请求
 	conn, err := (&websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}).Upgrade(res, req, nil)
 	if err != nil {
+		errMsg := fmt.Sprintf("解析请求时发生错误，error：%s", err.Error())
+		log.Error(errMsg)
 		http.NotFound(res, req)
 		return
 	}
@@ -42,55 +44,54 @@ func (s *Server) wsFile(res http.ResponseWriter, req *http.Request) {
 	err = conn.ReadJSON(&fileInfo)
 	if err != nil {
 		errMsg := fmt.Sprintf("Get request info error,error: %s", err.Error())
-		log.Debug(errMsg)
+		s.wsFileWriteResponse(conn, -1, errMsg, &fileInfo, nil)
 		return
 	}
-	log.Debug(fileInfo.SubPath + "      " + fileInfo.Name)
-	var rData object.DownloadFileData
-	//TODO
-	//log.Debug(fmt.Sprintf("Client [%s] [%s]", fileInfo.Id, fileInfo.Key))
-	//var f object.File
-	//err = json.Unmarshal([]byte(fileInfo.Data), &f)
-	//if err != nil {
-	//	errMsg := fmt.Sprintf("Get FileInfo error: %s", err.Error())
-	//	log.Error(errMsg)
-	//	s.writeFileReturnMessage(conn, -1, errMsg, nil)
-	//	return
-	//}
-	////===================================================================================================
-	//path, err := goToolCommon.GetCurrPath()
-	//if err != nil {
-	//	errMsg := fmt.Sprintf("Get CurrPath error: %s", err.Error())
-	//	log.Error(errMsg)
-	//	s.writeFileReturnMessage(conn, -1, errMsg, nil)
-	//	return
-	//}
-	//filePath := path + "//" + "File" + "//" + f.Name
-	//b, err := goToolCommon.PathExists(filePath)
-	//if err != nil {
-	//	errMsg := fmt.Sprintf("检查文件是否存在时遇到错误，error: %s", err.Error())
-	//	log.Error(errMsg)
-	//	s.writeFileReturnMessage(conn, -1, errMsg, nil)
-	//	return
-	//}
-	//if !b {
-	//	errMsg := "请求的文件不存在"
-	//	log.Error(errMsg)
-	//	log.Error(filePath)
-	//	s.writeFileReturnMessage(conn, -1, errMsg, nil)
-	//	return
-	//}
-	//fileData, err := ioutil.ReadFile(filePath)
-	//if err != nil {
-	//	if err != nil {
-	//		errMsg := fmt.Sprintf("读取文件时遇到错误，error: %s", err.Error())
-	//		log.Error(errMsg)
-	//		s.writeFileReturnMessage(conn, -1, errMsg, nil)
-	//		return
-	//	}
-	//}
-	//s.writeFileReturnMessage(conn, 0, "", fileData)
+
+	currPath, err := goToolCommon.GetCurrPath()
+	if err != nil {
+		errMsg := fmt.Sprintf("server get currPath error,error: %s", err.Error())
+		s.wsFileWriteResponse(conn, -1, errMsg, &fileInfo, nil)
+		return
+	}
+
+	filePath := currPath + "\\" + fileInfo.SubPath + "\\" + fileInfo.Name
+	b, err := goToolCommon.PathExists(filePath)
+	if err != nil {
+		errMsg := fmt.Sprintf("server check file exist error: %s", err.Error())
+		s.wsFileWriteResponse(conn, -1, errMsg, &fileInfo, nil)
+		return
+	}
+	if !b {
+		errMsg := fmt.Sprintf("file not exist error: %s", fileInfo.SubPath+"\\"+fileInfo.Name)
+		s.wsFileWriteResponse(conn, -1, errMsg, &fileInfo, nil)
+		return
+	}
+
+	fileData, err := ioutil.ReadFile(filePath)
+	if err != nil {
+		errMsg := fmt.Sprintf("读取文件时遇到错误,error: %s", err.Error())
+		s.wsFileWriteResponse(conn, -1, errMsg, &fileInfo, nil)
+		return
+	}
+	s.wsFileWriteResponse(conn, 0, "", &fileInfo, fileData)
 	return
+}
+
+func (s *Server) wsFileWriteResponse(conn *websocket.Conn, errCode int, errMsg string, fileInfo *object.DownloadFile, data []byte) {
+	if errCode != 0 || errMsg != "" {
+		log.Error(errMsg)
+	}
+	rData := object.DownloadFileData{
+		ErrCode: errCode,
+		ErrMsg:  errMsg,
+		Info:    *fileInfo,
+		Data:    data,
+	}
+	err := conn.WriteJSON(rData)
+	if err != nil {
+		log.Error(fmt.Sprintf("websocket write json error: %s", err.Error()))
+	}
 }
 
 //func (s *Server) writeFileReturnMessage(conn *websocket.Conn, errCode int, errMsg string, data []byte) {
@@ -219,7 +220,6 @@ func (s *Server) handlerDownloadFileList(clientId string, d []byte) *object.Ctrl
 	}
 	list := s.getDownloadFileList(subPath)
 	for _, f := range list {
-		log.Debug(f.SubPath + "\\" + f.Name)
 		f.SubPath = strings.Replace(f.SubPath, currPath, "", -1)
 	}
 	//for _, f := range list {

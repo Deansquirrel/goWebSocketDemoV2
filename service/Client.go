@@ -7,6 +7,7 @@ import (
 	"github.com/Deansquirrel/goWebSocketDemoV2/global"
 	"github.com/Deansquirrel/goWebSocketDemoV2/object"
 	"github.com/gorilla/websocket"
+	"io/ioutil"
 	"net/url"
 	"strings"
 	"time"
@@ -107,13 +108,6 @@ func (c *Client) downFileList(list []object.DownloadFile) {
 }
 
 func (c *Client) downFile(currPath string, f *object.DownloadFile) {
-	fullPath := currPath + "\\" + f.SubPath
-	fullPath = "C:\\Users\\yuansong\\go\\pkg\\goWebSocketDemoV2\\Client\\AA\\BB\\CC"
-	err := goToolCommon.CheckAndCreateFolder(fullPath)
-	if err != nil {
-		log.Error(fmt.Sprintf("检查并创建路径时遇到错误：%s", err.Error()))
-		return
-	}
 	//下载文件
 	u := url.URL{Scheme: "ws", Host: global.SysConfig.Server.Address, Path: WebPathDownloadFile}
 	var dialer = &websocket.Dialer{
@@ -127,14 +121,32 @@ func (c *Client) downFile(currPath string, f *object.DownloadFile) {
 	defer func() {
 		_ = conn.Close()
 	}()
-	//TODO
+
 	err = conn.WriteJSON(&f)
 	if err != nil {
 		log.Error(fmt.Sprintf("WebSocket write error: %s", err.Error()))
 		return
 	}
 
-	err = conn.ReadJSON()
+	var rData object.DownloadFileData
+	err = conn.ReadJSON(&rData)
+	if err != nil {
+		log.Error(fmt.Sprintf("WebSocket read error: %s", err.Error()))
+		return
+	}
+
+	fullPath := currPath + rData.Info.SubPath
+	err = goToolCommon.CheckAndCreateFolder(fullPath)
+	if err != nil {
+		log.Error(fmt.Sprintf("检查并创建路径时遇到错误：%s", err.Error()))
+		return
+	}
+
+	err = ioutil.WriteFile(fullPath+"\\"+rData.Info.Name, rData.Data, 0644)
+	if err != nil {
+		log.Error(fmt.Sprintf("保存文件时遇到错误：%s", err.Error()))
+		return
+	}
 }
 
 //返回消息处理
