@@ -21,7 +21,7 @@ const (
 	//客户端下载文件夹名称
 	ClientFileFolder = "clientFile"
 	//最大线程数
-	MaxThread = 10
+	//MaxThread = 10
 )
 
 var Ctx context.Context

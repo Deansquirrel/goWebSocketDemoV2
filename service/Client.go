@@ -92,22 +92,19 @@ func (c *Client) downFileList(list []object.DownloadFile) {
 		log.Warn("Download Stopped")
 		return
 	}
-
-	chList := make(chan struct{}, global.MaxThread)
-	defer close(chList)
-	for i := 0; i < global.MaxThread; i++ {
-		chList <- struct{}{}
-	}
+	//chList := make(chan struct{}, global.MaxThread)
+	//defer close(chList)
+	//for i := 0; i < global.MaxThread; i++ {
+	//	chList <- struct{}{}
+	//}
 	for _, f := range list {
-		select {
-		case <-chList:
-			c.downFile(currPath, &f)
-			chList <- struct{}{}
-		}
+		c.downFile(currPath, &f)
 	}
 }
 
 func (c *Client) downFile(currPath string, f *object.DownloadFile) {
+	log.Debug(fmt.Sprintf("Download %s Start", f.Name))
+	defer log.Debug(fmt.Sprintf("Download %s Complete", f.Name))
 	//下载文件
 	u := url.URL{Scheme: "ws", Host: global.SysConfig.Server.Address, Path: WebPathDownloadFile}
 	var dialer = &websocket.Dialer{
@@ -196,58 +193,3 @@ func (c *Client) sendCtrlMessage(key string, v interface{}) {
 	comm := common{}
 	c.client.GetChSend() <- *comm.GetCtrlMessage(c.client.GetId(), key, v)
 }
-
-//
-////获取文件
-//func (c *Client) GetFile() {
-//	u := url.URL{Scheme: "ws", Host: global.SysConfig.Server.Address, Path: "/webSocket/File"}
-//	var dialer = &websocket.Dialer{
-//		HandshakeTimeout: global.HttpConnectTimeout * time.Second,
-//	}
-//	conn, _, err := dialer.Dial(u.String(), nil)
-//	if err != nil {
-//		log.Error(fmt.Sprintf("WebSocket Dial error: %s", err.Error()))
-//		time.AfterFunc(global.ReConnectDuration*time.Second, c.Start)
-//		return
-//	}
-//	f := object.File{
-//		Name: "test.exe",
-//	}
-//	d, err := json.Marshal(f)
-//	if err != nil {
-//		log.Error(fmt.Sprintf("Get filename byte error: %s", err.Error()))
-//		return
-//	}
-//	om := object.OprMessage{
-//		Id:   c.client.GetId(),
-//		Key:  "",
-//		Data: string(d),
-//	}
-//	err = conn.WriteJSON(om)
-//	if err != nil {
-//		log.Error(fmt.Sprintf("Socket write json error: %s", err.Error()))
-//		return
-//	}
-//	var rf object.ReFile
-//	err = conn.ReadJSON(&rf)
-//	if err != nil {
-//		log.Error(fmt.Sprintf("Socket read json error: %s", err.Error()))
-//		return
-//	}
-//	if rf.ErrCode != 0 {
-//		log.Error(fmt.Sprintf("Server return error:[%d]%s", rf.ErrCode, rf.ErrMsg))
-//		return
-//	}
-//	path, err := goToolCommon.GetCurrPath()
-//	if err != nil {
-//		errMsg := fmt.Sprintf("Get CurrPath error: %s", err.Error())
-//		log.Error(errMsg)
-//		return
-//	}
-//	filePath := path + "\\" + f.Name
-//	err = ioutil.WriteFile(filePath, rf.Data, 0644)
-//	if err != nil {
-//		log.Error(fmt.Sprintf("write file error: %s", err.Error()))
-//	}
-//	return
-//}

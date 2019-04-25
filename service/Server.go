@@ -94,18 +94,6 @@ func (s *Server) wsFileWriteResponse(conn *websocket.Conn, errCode int, errMsg s
 	}
 }
 
-//func (s *Server) writeFileReturnMessage(conn *websocket.Conn, errCode int, errMsg string, data []byte) {
-//	writeErr := conn.WriteJSON(&object.ReFile{
-//		ErrCode: errCode,
-//		ErrMsg:  errMsg,
-//		Data:    data,
-//	})
-//	if writeErr != nil {
-//		log.Error(fmt.Sprintf("Write Response error: %s", writeErr.Error()))
-//	}
-//	return
-//}
-
 func (s *Server) wsPage(res http.ResponseWriter, req *http.Request) {
 	conn, err := (&websocket.Upgrader{CheckOrigin: func(r *http.Request) bool { return true }}).Upgrade(res, req, nil)
 	if err != nil {
@@ -222,10 +210,6 @@ func (s *Server) handlerDownloadFileList(clientId string, d []byte) *object.Ctrl
 	for _, f := range list {
 		f.SubPath = strings.Replace(f.SubPath, currPath, "", -1)
 	}
-	//for _, f := range list {
-	//	log.Debug(f.SubPath + "\\" + f.Name)
-	//}
-	//TODO 文件MD5未更新
 	rList := make([]object.DownloadFile, 0)
 	for _, f := range list {
 		rList = append(rList, *f)
