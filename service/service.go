@@ -2,6 +2,7 @@ package service
 
 import (
 	log "github.com/Deansquirrel/goToolLog"
+	"github.com/robfig/cron"
 	"time"
 )
 
@@ -25,12 +26,14 @@ func StartClient() error {
 		c = &Client{}
 		c.Start()
 	}()
-	go func() {
-		time.AfterFunc(time.Second*5, func() {
-			if c != nil {
-				c.DownloadList()
-			}
-		})
-	}()
+	for c == nil {
+		time.Sleep(time.Second)
+	}
+	t := cron.New()
+	err := t.AddFunc("0 0 * * * ?", c.DownloadList)
+	if err != nil {
+		return err
+	}
+	t.Start()
 	return nil
 }
